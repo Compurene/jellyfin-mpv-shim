@@ -1,0 +1,93 @@
+name: build
+
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+jobs:
+  build-win64:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210829-git-dffb94f.7z/download > mpv.7z
+        7z x mpv.7z
+        pip install .[all] wheel pywebview[cef]==3.4 pywin32 cefpython3==66.0
+        ./gen_pkg.sh --skip-build
+        python ./get_pywebview_natives.py
+      shell: bash
+    - name: Copy files
+      run: |
+        Xcopy /E /I c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\cefpython3 cef\cefpython3
+      shell: cmd
+    - name: Install pydantic
+      run: |
+        pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32
+      shell: bash
+    - name: PyInstaller Bootloader
+      run: |
+        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+      shell: bash
+    - name: Main Build
+      run: |
+        .\build-win.bat
+      shell: cmd
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh standard
+      shell: bash
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: jellyfin-mpv-desktop
+        path: ${{ github.workspace }}/publish/DesktopInstaller/*.exe
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: jellyfin-mpv-shim
+        path: ${{ github.workspace }}/publish/Shim/*.exe
+  build-win32:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install dependencies
+      run: |
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20210829-git-dffb94f.7z/download > mpv.7z
+        7z x mpv.7z
+        pip install .[all] wheel pywebview[cef]==3.3.3 pywin32
+        ./gen_pkg.sh --skip-build
+        python ./get_pywebview_natives.py
+      shell: bash
+    - name: Copy files
+      run: |
+        Xcopy /E /I c:\hostedtoolcache\windows\python\3.7.9\x64\lib\site-packages\cefpython3 cef32\cefpython3
+      shell: cmd
+    - name: Install pydantic
+      run: |
+        pip uninstall -y pydantic; SKIP_CYTHON=1 pip install --force-reinstall --ignore-installed --no-binary :all: pydantic==0.32
+      shell: bash
+    - name: PyInstaller Bootloader
+      run: |
+        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+      shell: bash
+    - name: Legacy Build
+      run: |
+        .\build-win-32.bat
+      shell: cmd
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh legacy
+      shell: bash
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: jellyfin-mpv-desktop-legacy32
+        path: ${{ github.workspace }}/publish/DesktopInstallerLegacy/*.exe
