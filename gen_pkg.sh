@@ -59,7 +59,7 @@ elif [[ "$1" == "--gen-fingerprint" ]]
 then
     (
         get_resource_version pyinstaller/pyinstaller
-        get_resource_version iwalton3/jellyfin-web
+        get_resource_version Compurene/jellyfin-web
         get_resource_version iwalton3/default-shader-pack
     ) | tee az-cache-fingerprint.list
     exit 0
@@ -100,7 +100,7 @@ then
     update_web_client="yes"
 elif [[ -e ".last_wc_version" ]]
 then
-    if [[ "$(get_resource_version iwalton3/jellyfin-web)" != "$(cat .last_wc_version)" ]]
+    if [[ "$(get_resource_version Compurene/jellyfin-web)" != "$(cat .last_wc_version)" ]]
     then
         update_web_client="yes"
     fi
@@ -109,8 +109,8 @@ fi
 if [[ "$update_web_client" == "yes" ]]
 then
     echo "Downloading web client..."
-    wc_version=$(get_resource_version iwalton3/jellyfin-web)
-    download_compat dist.zip "https://github.com/iwalton3/jellyfin-web/releases/download/$wc_version/dist.zip" "wc"
+    wc_version=$(get_resource_version Compurene/jellyfin-web)
+    download_compat dist.zip "https://github.com/Compurene/jellyfin-web/releases/download/$wc_version/dist.zip" "wc"
     rm -r jellyfin_mpv_shim/webclient_view/webclient 2> /dev/null
     rm -r dist 2> /dev/null
     unzip dist.zip > /dev/null && rm dist.zip
