@@ -1,0 +1,76 @@
+name: manual build
+
+on:
+  workflow_dispatch:
+    # Inputs the workflow accepts.
+jobs:
+  build-win64:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python 3.9
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-x86_64-20220515-git-9467772.7z/download > mpv.7z
+        7z x mpv.7z
+        pip install wheel
+        pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
+        pip install .[all] pywebview==3.4 pywin32
+        ./gen_pkg.sh --skip-build
+        python ./get_pywebview_natives.py
+      shell: bash
+    - name: PyInstaller Bootloader
+      run: |
+        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+      shell: bash
+    - name: Main Build
+      run: |
+        .\build-win.bat
+      shell: cmd
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh standard
+      shell: bash
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows
+        path: ${{ github.workspace }}/publish/Installer/*.exe
+  build-win32:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Setup Python 3.9
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.9
+    - name: Install dependencies
+      run: |
+        curl -L https://sourceforge.net/projects/mpv-player-windows/files/libmpv/mpv-dev-i686-20220515-git-9467772.7z/download > mpv.7z
+        7z x mpv.7z
+        pip install wheel
+        pip install git+https://github.com/pythonnet/pythonnet@438bcdd3f0b2e2ee358b407cfc96e4385e5783fc
+        pip install .[all] pywebview==3.4 pywin32
+        ./gen_pkg.sh --skip-build
+        python ./get_pywebview_natives.py
+      shell: bash
+    - name: PyInstaller Bootloader
+      run: |
+        ./gen_pkg.sh --get-pyinstaller; cd pyinstaller/bootloader; python ./waf distclean all; cd ..; python setup.py install
+      shell: bash
+    - name: Legacy Build
+      run: |
+        .\build-win-32.bat
+      shell: cmd
+    - name: Artifact Rename
+      run: |
+        ./artifacts.sh legacy
+      shell: bash
+    - name: Archive production artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-legacy32
+        path: ${{ github.workspace }}/publish/InstallerLegacy/*.exe
